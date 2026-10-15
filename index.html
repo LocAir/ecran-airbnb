@@ -16,12 +16,30 @@
   }
 
   /* ---------- Écran météo ---------- */
-  #meteo {
+  .ecran {
     --bg: #22324F; --card: #2C4066; --gold: #C8A15A; --cream: #F5EFE4; --muted: #B9C0CA;
     position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center;
     opacity: 0; pointer-events: none; transition: opacity .8s ease; z-index: 5;
   }
-  #meteo.visible { opacity: 1; }
+  .ecran.visible { opacity: 1; }
+  #agenda { --bg: #1E2A3A; }
+
+  /* ---------- Écran agenda ---------- */
+  .scene-agenda {
+    width: min(100vw, calc(100vh * 16 / 9)); aspect-ratio: 16 / 9; container-type: inline-size; box-sizing: border-box;
+    padding: 4cqw 5cqw 3.5cqw; color: var(--cream); font-family: Manrope, system-ui, sans-serif; display: flex; flex-direction: column;
+  }
+  .scene-agenda .titre { font-size: 4.2cqw; margin: 1.2cqw 0 .4cqw; }
+  .periode { color: var(--muted); font-size: 1.5cqw; }
+  .liste { display: grid; grid-template-rows: repeat(5, 1fr); grid-auto-flow: column; grid-auto-columns: 1fr; gap: 1cqw 2.4cqw; margin-top: 2.4cqw; flex: 1; }
+  .evt { display: flex; align-items: center; gap: 1.4cqw; border-top: .1cqw solid rgba(200,161,90,.35); padding-top: .9cqw; min-width: 0; }
+  .evt .jour { flex: 0 0 5.4cqw; text-align: center; border: .12cqw solid var(--gold); border-radius: 1cqw; padding: .4cqw 0; }
+  .evt .jour small { display: block; color: var(--gold); font-weight: 700; font-size: .95cqw; letter-spacing: .08em; }
+  .evt .jour b { display: block; font-family: Fraunces, Georgia, serif; font-weight: 500; font-size: 2.3cqw; line-height: 1.05; }
+  .evt .txt { min-width: 0; }
+  .evt .nom { font-family: Fraunces, Georgia, serif; font-size: 1.75cqw; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .evt .info { color: var(--muted); font-size: 1.15cqw; margin-top: .3cqw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .evt .info em { color: var(--gold); font-style: normal; font-weight: 700; }
   .scene {
     width: min(100vw, calc(100vh * 16 / 9)); aspect-ratio: 16 / 9; container-type: inline-size;
     display: grid; grid-template-columns: 40% 60%; color: var(--cream); font-family: Manrope, system-ui, sans-serif;
@@ -52,7 +70,7 @@
 <iframe id="diapo" allowfullscreen></iframe>
 <div id="message"></div>
 
-<div id="meteo" aria-hidden="true">
+<div id="meteo" class="ecran" aria-hidden="true">
   <div class="scene">
     <div class="gauche">
       <div id="m-icone"></div>
@@ -74,6 +92,15 @@
       </div>
       <div class="heures" id="m-heures"></div>
     </div>
+  </div>
+</div>
+
+<div id="agenda" class="ecran" aria-hidden="true">
+  <div class="scene-agenda">
+    <div class="eyebrow">CETTE SEMAINE À NICE · THIS WEEK IN NICE</div>
+    <div class="titre">L'agenda de la semaine</div>
+    <div class="periode" id="a-periode"></div>
+    <div class="liste" id="a-liste"></div>
   </div>
 </div>
 
@@ -104,8 +131,15 @@ const SIGNAL_MINUTES   = 5;  // fréquence du signal "je suis vivante"
 const METEO = {
   actif: true,
   latitude: 43.6966, longitude: 7.2654,  // Nice
-  toutesLesSecondes: 100,                 // apparaît toutes les 100 s (≈ un tour de diaporama)
+  toutesLesSecondes: 100,                 // un écran en direct toutes les 100 s (≈ un tour de diaporama)
   dureeSecondes: 12                       // reste affiché 12 s
+};
+
+// 4) Écran agenda des 10 prochains événements (alterne avec la météo)
+//    Sources réglées dans Vercel : TICKETMASTER_KEY et/ou EVENEMENTS_CSV (voir api/evenements.js)
+const AGENDA = {
+  actif: true,
+  dureeSecondes: 15
 };
 
 /* ========================================================= */
@@ -199,18 +233,54 @@ async function chargerMeteo() {
   } catch (e) { /* pas de réseau : on n'affiche pas la météo */ }
 }
 
-function demarrerMeteo() {
-  const ecran = document.getElementById("meteo");
-  chargerMeteo();
-  setInterval(chargerMeteo, 20 * 60 * 1000);
-  if (params.get("apercu") === "meteo") {               // ?apercu=meteo : météo affichée en continu
-    const f = () => meteoPrete ? ecran.classList.add("visible") : setTimeout(f, 300); f();
+/* ---------- Agenda ---------- */
+const JOURS_FR = ["DIM", "LUN", "MAR", "MER", "JEU", "VEN", "SAM"];
+let agendaPret = false;
+const echapper = t => String(t || "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+async function chargerAgenda() {
+  try {
+    const r = await fetch("/api/evenements", { cache: "no-store" }).then(x => x.json());
+    const evts = r.events || [];
+    if (!evts.length) { agendaPret = false; return; }
+    const fmt = iso => new Date(iso + "T12:00:00").toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+    document.getElementById("a-periode").textContent = `Du ${fmt(r.du)} au ${fmt(r.au)} · ${evts.length} rendez-vous`;
+    document.getElementById("a-liste").innerHTML = evts.map(e => {
+      const d = new Date(e.date + "T12:00:00");
+      const infos = [e.heure ? e.heure.replace(":", "h") : "", e.lieu].filter(Boolean).map(echapper).join(" · ");
+      return `<div class="evt"><div class="jour"><small>${JOURS_FR[d.getDay()]}</small><b>${d.getDate()}</b></div>`
+           + `<div class="txt"><div class="nom">${echapper(e.titre)}</div><div class="info"><em>${echapper(e.categorie)}</em>${infos ? " · " + infos : ""}</div></div></div>`;
+    }).join("");
+    agendaPret = true;
+  } catch (e) { agendaPret = false; }
+}
+
+/* ---------- Rotation des écrans en direct ---------- */
+function demarrerEcrans() {
+  const ecrans = [];
+  if (METEO.actif) { chargerMeteo(); setInterval(chargerMeteo, 20 * 60 * 1000);
+    ecrans.push({ el: document.getElementById("meteo"), pret: () => meteoPrete, duree: METEO.dureeSecondes }); }
+  if (AGENDA.actif) { chargerAgenda(); setInterval(chargerAgenda, 60 * 60 * 1000);
+    ecrans.push({ el: document.getElementById("agenda"), pret: () => agendaPret, duree: AGENDA.dureeSecondes }); }
+
+  const apercu = params.get("apercu");                   // ?apercu=meteo ou ?apercu=agenda : affiché en continu
+  if (apercu) {
+    const el = document.getElementById(apercu);
+    const e = ecrans.find(x => x.el === el);
+    if (e) { const f = () => e.pret() ? el.classList.add("visible") : setTimeout(f, 300); f(); }
     return;
   }
+  let n = 0;
   setInterval(() => {
-    if (!meteoPrete) return;
-    ecran.classList.add("visible");
-    setTimeout(() => ecran.classList.remove("visible"), METEO.dureeSecondes * 1000);
+    for (let k = 0; k < ecrans.length; k++) {             // prend le prochain écran prêt (météo, agenda, météo…)
+      const e = ecrans[(n + k) % ecrans.length];
+      if (e.pret()) {
+        n = (n + k + 1) % ecrans.length;
+        e.el.classList.add("visible");
+        setTimeout(() => e.el.classList.remove("visible"), e.duree * 1000);
+        return;
+      }
+    }
   }, METEO.toutesLesSecondes * 1000);
 }
 
@@ -222,7 +292,7 @@ if (!id) {
   afficherMessage("Aucun diaporama pour le quartier « " + tablette.quartier + " »");
 } else {
   document.getElementById("diapo").src = lien;
-  if (METEO.actif) demarrerMeteo();
+  demarrerEcrans();
 
   envoyerSignal();
   setInterval(envoyerSignal, SIGNAL_MINUTES * 60 * 1000);
