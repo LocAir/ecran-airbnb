@@ -23,6 +23,30 @@
   }
   .ecran.visible { opacity: 1; }
   #agenda { --bg: #1E2A3A; }
+  #logement { --bg: #0F1B2D; --card: #172A42; }
+
+  /* ---------- Écran logement (propre à chaque tablette) ---------- */
+  .scene-logement { width: min(100vw, calc(100vh * 16 / 9)); aspect-ratio: 16 / 9; container-type: inline-size;
+    display: grid; grid-template-columns: 36% 64%; color: var(--cream); font-family: Manrope, system-ui, sans-serif; }
+  .scene-logement .gauche { gap: 1.4cqw; }
+  .qr-wifi { background: var(--cream); border-radius: 1.6cqw; padding: 1.6cqw; text-align: center; color: #0F1B2D; }
+  .qr-wifi canvas, .qr-wifi img { width: 17cqw; height: 17cqw; display: block; image-rendering: pixelated; }
+  .qr-wifi div { font-weight: 700; font-size: 1.1cqw; margin-top: .8cqw; }
+  .qr-sous { color: var(--muted); font-size: 1.15cqw; text-align: center; }
+  .scene-logement .titre { font-size: 4.2cqw; margin: 1.2cqw 0 2cqw; }
+  .lg-cartes { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2cqw; }
+  .lg-carte { background: var(--card); border: .12cqw solid var(--gold); border-radius: 1.4cqw; padding: 1.3cqw 1.6cqw; min-width: 0; }
+  .lg-carte.large { grid-column: 1 / -1; }
+  .lg-carte .lab { color: var(--gold); font-weight: 700; font-size: 1.05cqw; letter-spacing: .1em; }
+  .lg-carte .val { font-family: Fraunces, Georgia, serif; font-size: 2.6cqw; margin-top: .4cqw; overflow-wrap: anywhere; }
+  .lg-carte .sub { color: var(--muted); font-size: 1.2cqw; margin-top: .3cqw; }
+  .lg-pied { display: flex; align-items: center; gap: 1.6cqw; margin-top: auto; color: var(--muted); font-size: 1.25cqw; }
+  .lg-pied img { height: 3.4cqw; }
+  .lg-pied b { color: var(--cream); font-family: Fraunces, Georgia, serif; font-weight: 500; font-size: 1.7cqw; }
+
+  /* ---------- Mode nuit ---------- */
+  #nuit { position: fixed; inset: 0; background: #000; z-index: 20; display: none; }
+  #nuit.actif { display: block; }
 
   /* ---------- Écran agenda ---------- */
   .scene-agenda {
@@ -95,6 +119,27 @@
   </div>
 </div>
 
+<div id="logement" class="ecran" aria-hidden="true">
+  <div class="scene-logement">
+    <div class="gauche">
+      <div class="qr-wifi"><div id="l-qr"></div><div>WIFI · SCAN ME</div></div>
+      <div class="qr-sous">Scannez pour vous connecter<br>Scan to connect</div>
+    </div>
+    <div class="droite">
+      <div class="eyebrow">VOTRE LOGEMENT · YOUR STAY</div>
+      <div class="titre" id="l-nom"></div>
+      <div class="lg-cartes">
+        <div class="lg-carte"><div class="lab">WIFI</div><div class="val" id="l-wifi"></div><div class="sub" id="l-mdp"></div></div>
+        <div class="lg-carte"><div class="lab">ARRIVÉE · DÉPART</div><div class="val" id="l-horaires"></div><div class="sub">Check-in · Check-out</div></div>
+        <div class="lg-carte large" id="l-infos-carte"><div class="lab">BON À SAVOIR · GOOD TO KNOW</div><div class="sub" id="l-infos" style="color:var(--cream);font-size:1.35cqw;line-height:1.5"></div></div>
+      </div>
+      <div class="lg-pied"><img src="img/hostias-logo-v2.png" alt="Hostias"><span>Une question ? · Need help?<br><b id="l-tel"></b></span></div>
+    </div>
+  </div>
+</div>
+
+<div id="nuit"></div>
+
 <div id="agenda" class="ecran" aria-hidden="true">
   <div class="scene-agenda">
     <div class="eyebrow">CETTE SEMAINE À NICE · THIS WEEK IN NICE</div>
@@ -104,6 +149,7 @@
   </div>
 </div>
 
+<script src="js/qrcode.js"></script>
 <script>
 /* =========================================================
    CONFIGURATION — c'est la seule partie à modifier
@@ -117,11 +163,30 @@ const DIAPORAMAS = {
   "liberation":  "https://docs.google.com/presentation/d/e/COLLE_ICI_TON_ID/embed?start=true&loop=true&delayms=10000&rm=minimal"
 };
 
-// 2) Une ligne par tablette : son quartier + son lien Healthchecks.io
+// 2) Une ligne par tablette : son quartier, son lien Healthchecks.io et les infos de SON logement
+//    (wifi, horaires, consignes). Ces infos s'affichent sur l'écran « Votre logement ».
 const TABLETTES = {
-  "vieux-nice-1": { quartier: "vieux-nice", ping: "https://hc-ping.com/COLLE_ICI_LE_LIEN_DE_CETTE_TABLETTE" },
-  "vieux-nice-2": { quartier: "vieux-nice", ping: "https://hc-ping.com/COLLE_ICI_LE_LIEN_DE_CETTE_TABLETTE" },
-  "liberation-1": { quartier: "liberation", ping: "https://hc-ping.com/COLLE_ICI_LE_LIEN_DE_CETTE_TABLETTE" }
+  "vieux-nice-1": {
+    quartier: "vieux-nice",
+    ping: "https://hc-ping.com/COLLE_ICI_LE_LIEN_DE_CETTE_TABLETTE",
+    logement: {
+      nom: "Appartement Rossetti",
+      wifi: "NomDuReseau", motDePasse: "xxxxxxxx",
+      arrivee: "15h", depart: "11h",
+      infos: "Clés dans la boîte à clés en partant · Tri sélectif sous l'évier · Merci de respecter le calme après 22h",
+      telephone: "04 65 84 18 24"
+    }
+  },
+  "vieux-nice-2": {
+    quartier: "vieux-nice",
+    ping: "https://hc-ping.com/COLLE_ICI_LE_LIEN_DE_CETTE_TABLETTE",
+    logement: { nom: "Studio Saleya", wifi: "NomDuReseau2", motDePasse: "xxxxxxxx", arrivee: "15h", depart: "11h", infos: "", telephone: "04 65 84 18 24" }
+  },
+  "liberation-1": {
+    quartier: "liberation",
+    ping: "https://hc-ping.com/COLLE_ICI_LE_LIEN_DE_CETTE_TABLETTE",
+    logement: { nom: "Appartement Libération", wifi: "NomDuReseau3", motDePasse: "xxxxxxxx", arrivee: "15h", depart: "11h", infos: "", telephone: "04 65 84 18 24" }
+  }
 };
 
 const RECHARGE_MINUTES = 30; // les modifs du diaporama arrivent au plus tard après ce délai
@@ -131,7 +196,7 @@ const SIGNAL_MINUTES   = 5;  // fréquence du signal "je suis vivante"
 const METEO = {
   actif: true,
   latitude: 43.6966, longitude: 7.2654,  // Nice
-  toutesLesSecondes: 100,                 // un écran en direct toutes les 100 s (≈ un tour de diaporama)
+  toutesLesSecondes: 75,                  // un écran en direct toutes les 75 s : logement, météo, logement, agenda…
   dureeSecondes: 12                       // reste affiché 12 s
 };
 
@@ -141,6 +206,12 @@ const AGENDA = {
   actif: true,
   dureeSecondes: 15
 };
+
+// 5) Écran « Votre logement » (wifi, horaires) : revient un écran en direct sur deux
+const LOGEMENT = { actif: true, dureeSecondes: 15 };
+
+// 6) Mode nuit : écran noir la nuit (un toucher le rallume 2 minutes)
+const NUIT = { actif: true, debut: 23, fin: 7 };
 
 /* ========================================================= */
 
@@ -255,15 +326,54 @@ async function chargerAgenda() {
   } catch (e) { agendaPret = false; }
 }
 
+/* ---------- Logement ---------- */
+let logementPret = false;
+function preparerLogement() {
+  const l = tablette && tablette.logement;
+  if (!l || !l.wifi) return;
+  const esc = v => String(v).replace(/([\\;,:"])/g, "\\$1");      // caractères spéciaux du format WIFI:
+  try {
+    const qr = qrcode(0, "M");
+    qr.addData(`WIFI:T:WPA;S:${esc(l.wifi)};P:${esc(l.motDePasse || "")};;`);
+    qr.make();
+    document.getElementById("l-qr").innerHTML = qr.createSvgTag({ cellSize: 8, margin: 0 });
+    const svg = document.querySelector("#l-qr svg"); svg.style.width = "17cqw"; svg.style.height = "17cqw"; svg.style.display = "block";
+  } catch (e) {}
+  document.getElementById("l-nom").textContent = l.nom || "Bienvenue";
+  document.getElementById("l-wifi").textContent = l.wifi;
+  document.getElementById("l-mdp").textContent = l.motDePasse ? "Mot de passe · Password : " + l.motDePasse : "";
+  document.getElementById("l-horaires").textContent = `${l.arrivee || "–"} · ${l.depart || "–"}`;
+  document.getElementById("l-infos").textContent = l.infos || "";
+  document.getElementById("l-infos-carte").style.display = l.infos ? "" : "none";
+  document.getElementById("l-tel").textContent = l.telephone || "";
+  logementPret = true;
+}
+
+/* ---------- Mode nuit ---------- */
+function demarrerNuit() {
+  const voile = document.getElementById("nuit");
+  let reveilJusqua = 0;
+  const heure = () => +new Date().toLocaleString("en-GB", { hour: "2-digit", hour12: false, timeZone: "Europe/Paris" });
+  const estLaNuit = h => NUIT.debut > NUIT.fin ? (h >= NUIT.debut || h < NUIT.fin) : (h >= NUIT.debut && h < NUIT.fin);
+  const maj = () => voile.classList.toggle("actif", estLaNuit(heure()) && Date.now() > reveilJusqua);
+  document.addEventListener("pointerdown", () => { reveilJusqua = Date.now() + 2 * 60 * 1000; maj(); }, true);
+  voile.addEventListener("pointerdown", () => { reveilJusqua = Date.now() + 2 * 60 * 1000; maj(); });
+  maj(); setInterval(maj, 30 * 1000);
+}
+
 /* ---------- Rotation des écrans en direct ---------- */
 function demarrerEcrans() {
   const ecrans = [];
+  const ecranLogement = { el: document.getElementById("logement"), pret: () => logementPret, duree: LOGEMENT.dureeSecondes };
+  if (LOGEMENT.actif) { preparerLogement(); ecrans.push(ecranLogement); }
   if (METEO.actif) { chargerMeteo(); setInterval(chargerMeteo, 20 * 60 * 1000);
     ecrans.push({ el: document.getElementById("meteo"), pret: () => meteoPrete, duree: METEO.dureeSecondes }); }
   if (AGENDA.actif) { chargerAgenda(); setInterval(chargerAgenda, 60 * 60 * 1000);
     ecrans.push({ el: document.getElementById("agenda"), pret: () => agendaPret, duree: AGENDA.dureeSecondes }); }
+  // Ordre de passage : logement, météo, logement, agenda…
+  if (LOGEMENT.actif && ecrans.length > 2) ecrans.splice(2, 0, ecranLogement);
 
-  const apercu = params.get("apercu");                   // ?apercu=meteo ou ?apercu=agenda : affiché en continu
+  const apercu = params.get("apercu");                   // ?apercu=logement, meteo ou agenda : affiché en continu
   if (apercu) {
     const el = document.getElementById(apercu);
     const e = ecrans.find(x => x.el === el);
@@ -293,6 +403,7 @@ if (!id) {
 } else {
   document.getElementById("diapo").src = lien;
   demarrerEcrans();
+  if (NUIT.actif && !params.get("apercu")) demarrerNuit();
 
   envoyerSignal();
   setInterval(envoyerSignal, SIGNAL_MINUTES * 60 * 1000);
