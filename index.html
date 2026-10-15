@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Écran infos voyageurs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500&family=Manrope:wght@500;700&display=swap" rel="stylesheet">
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; cursor: none; }
   iframe { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; }
@@ -11,11 +14,68 @@
     position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
     color: #fff; font: 600 22px/1.4 system-ui, sans-serif; text-align: center; padding: 24px;
   }
+
+  /* ---------- Écran météo ---------- */
+  #meteo {
+    --bg: #22324F; --card: #2C4066; --gold: #C8A15A; --cream: #F5EFE4; --muted: #B9C0CA;
+    position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity .8s ease; z-index: 5;
+  }
+  #meteo.visible { opacity: 1; }
+  .scene {
+    width: min(100vw, calc(100vh * 16 / 9)); aspect-ratio: 16 / 9; container-type: inline-size;
+    display: grid; grid-template-columns: 40% 60%; color: var(--cream); font-family: Manrope, system-ui, sans-serif;
+  }
+  .gauche { background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1cqw; }
+  .gauche svg { width: 17cqw; height: 17cqw; }
+  .temp { font-family: Fraunces, Georgia, serif; font-weight: 500; font-size: 11cqw; line-height: 1; }
+  .ressenti { color: var(--muted); font-size: 1.4cqw; }
+  .droite { padding: 4.5cqw 5cqw 3.5cqw; display: flex; flex-direction: column; }
+  .eyebrow { color: var(--gold); font-weight: 700; font-size: 1.15cqw; letter-spacing: .12em; }
+  .titre { font-family: Fraunces, Georgia, serif; font-weight: 500; font-size: 4.6cqw; line-height: 1.1; margin: 1.6cqw 0 .6cqw; }
+  .etat { font-size: 1.9cqw; color: var(--cream); }
+  .etat span { color: var(--muted); }
+  .chips { display: flex; gap: .9cqw; margin: 1.8cqw 0 2.2cqw; }
+  .chip { border: .12cqw solid var(--gold); border-radius: 99px; padding: .6cqw 1.4cqw; font-weight: 700; font-size: 1.2cqw; }
+  .cartes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2cqw; }
+  .carte { border: .12cqw solid var(--gold); border-radius: 1.4cqw; padding: 1.3cqw 1.4cqw; background: rgba(255,255,255,.03); }
+  .carte .ic { font-size: 2.2cqw; line-height: 1; }
+  .carte .lab { color: var(--muted); font-size: 1.1cqw; font-weight: 700; margin-top: .7cqw; }
+  .carte .val { font-family: Fraunces, Georgia, serif; font-size: 2.9cqw; color: var(--gold); margin-top: .3cqw; }
+  .heures { display: grid; grid-template-columns: repeat(5, 1fr); gap: .6cqw; margin-top: auto; }
+  .heure { text-align: center; font-size: 1.2cqw; color: var(--muted); }
+  .heure svg { width: 3.4cqw; height: 3.4cqw; display: block; margin: .3cqw auto; }
+  .heure b { color: var(--cream); font-family: Fraunces, Georgia, serif; font-weight: 500; font-size: 1.8cqw; }
 </style>
 </head>
 <body>
 <iframe id="diapo" allowfullscreen></iframe>
 <div id="message"></div>
+
+<div id="meteo" aria-hidden="true">
+  <div class="scene">
+    <div class="gauche">
+      <div id="m-icone"></div>
+      <div class="temp" id="m-temp">–°</div>
+      <div class="ressenti" id="m-ressenti"></div>
+    </div>
+    <div class="droite">
+      <div class="eyebrow">AUJOURD'HUI À NICE · TODAY IN NICE</div>
+      <div class="titre" id="m-date"></div>
+      <div class="etat" id="m-etat"></div>
+      <div class="chips">
+        <div class="chip" id="m-minmax"></div>
+        <div class="chip" id="m-vent"></div>
+      </div>
+      <div class="cartes">
+        <div class="carte"><div class="ic">🌊</div><div class="lab">Mer · Sea</div><div class="val" id="m-mer">–</div></div>
+        <div class="carte"><div class="ic">🌅</div><div class="lab">Coucher · Sunset</div><div class="val" id="m-sunset">–</div></div>
+        <div class="carte"><div class="ic">☀️</div><div class="lab">UV</div><div class="val" id="m-uv">–</div></div>
+      </div>
+      <div class="heures" id="m-heures"></div>
+    </div>
+  </div>
+</div>
 
 <script>
 /* =========================================================
@@ -40,9 +100,18 @@ const TABLETTES = {
 const RECHARGE_MINUTES = 30; // les modifs du diaporama arrivent au plus tard après ce délai
 const SIGNAL_MINUTES   = 5;  // fréquence du signal "je suis vivante"
 
+// 3) Écran météo en direct (s'intercale entre les slides)
+const METEO = {
+  actif: true,
+  latitude: 43.6966, longitude: 7.2654,  // Nice
+  toutesLesSecondes: 70,                  // apparaît toutes les 70 s (≈ un tour de diaporama)
+  dureeSecondes: 12                       // reste affiché 12 s
+};
+
 /* ========================================================= */
 
-const id = new URLSearchParams(location.search).get("tablette");
+const params = new URLSearchParams(location.search);
+const id = params.get("tablette");
 const tablette = TABLETTES[id];
 const lien = tablette && DIAPORAMAS[tablette.quartier];
 
@@ -57,6 +126,94 @@ function envoyerSignal() {
   fetch(tablette.ping, { mode: "no-cors", cache: "no-store" }).catch(() => {});
 }
 
+/* ---------- Météo ---------- */
+const GOLD = "#C8A15A", CREAM = "#F5EFE4", BLUE = "#8EC5E8";
+const SVG = {
+  soleil: `<svg viewBox="0 0 100 100"><g stroke="${GOLD}" stroke-width="6" stroke-linecap="round">${[0,45,90,135,180,225,270,315].map(a=>`<line x1="50" y1="10" x2="50" y2="20" transform="rotate(${a} 50 50)"/>`).join("")}</g><circle cx="50" cy="50" r="20" fill="${GOLD}"/></svg>`,
+  lune: `<svg viewBox="0 0 100 100"><path d="M62 18a32 32 0 1 0 20 50A26 26 0 0 1 62 18z" fill="${GOLD}"/></svg>`,
+  nuage: (x=0,y=0,c=CREAM)=>`<path transform="translate(${x} ${y})" fill="${c}" d="M30 78h44a16 16 0 0 0 0-32 22 22 0 0 0-42-6 18 18 0 0 0-2 38z"/>`,
+};
+function icone(code, jour) {
+  const astre = jour ? `<g transform="translate(-2 -2) scale(.62)">${SVG.soleil.replace(/<\/?svg[^>]*>/g,"")}</g>`
+                     : `<g transform="translate(-4 -6) scale(.62)">${SVG.lune.replace(/<\/?svg[^>]*>/g,"")}</g>`;
+  const gouttes = n => Array.from({length:n},(_,i)=>`<line x1="${38+i*12}" y1="84" x2="${34+i*12}" y2="94" stroke="${BLUE}" stroke-width="5" stroke-linecap="round"/>`).join("");
+  const flocons = `<g fill="${CREAM}"><circle cx="38" cy="90" r="4"/><circle cx="52" cy="92" r="4"/><circle cx="66" cy="90" r="4"/></g>`;
+  const eclair = `<path d="M54 74l-10 14h9l-5 10 14-16h-9l5-8z" fill="${GOLD}"/>`;
+  let c;
+  if (code === 0) c = jour ? SVG.soleil.replace(/<\/?svg[^>]*>/g,"") : SVG.lune.replace(/<\/?svg[^>]*>/g,"");
+  else if (code <= 2) c = astre + SVG.nuage(4, 6);
+  else if (code === 3) c = SVG.nuage(0,-4,"#8C97A8") + SVG.nuage(-6,6);
+  else if (code <= 48) c = SVG.nuage(0,-6) + `<g stroke="${CREAM}" stroke-width="5" stroke-linecap="round"><line x1="22" y1="86" x2="78" y2="86"/><line x1="30" y1="96" x2="70" y2="96"/></g>`;
+  else if (code <= 67 || (code >= 80 && code <= 82)) c = SVG.nuage(0,-10) + gouttes(3);
+  else if (code <= 86) c = SVG.nuage(0,-10) + flocons;
+  else c = SVG.nuage(0,-10,"#8C97A8") + eclair;
+  return `<svg viewBox="0 0 100 100">${c}</svg>`;
+}
+function libelle(code, jour) {
+  if (code === 0) return jour ? ["Ensoleillé","Sunny"] : ["Ciel dégagé","Clear sky"];
+  if (code <= 2) return ["Éclaircies","Partly cloudy"];
+  if (code === 3) return ["Couvert","Overcast"];
+  if (code <= 48) return ["Brouillard","Fog"];
+  if (code <= 57) return ["Bruine","Drizzle"];
+  if (code <= 67) return ["Pluie","Rain"];
+  if (code <= 77) return ["Neige","Snow"];
+  if (code <= 82) return ["Averses","Showers"];
+  if (code <= 86) return ["Averses de neige","Snow showers"];
+  return ["Orage","Thunderstorm"];
+}
+const heureDe = iso => iso.slice(11, 16).replace(":", "h");
+let meteoPrete = false;
+
+async function chargerMeteo() {
+  const { latitude: la, longitude: lo } = METEO;
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${la}&longitude=${lo}`
+    + `&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day`
+    + `&hourly=temperature_2m,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min,sunset,uv_index_max`
+    + `&timezone=Europe%2FParis&forecast_days=2&wind_speed_unit=kmh`;
+  const mer = `https://marine-api.open-meteo.com/v1/marine?latitude=${la}&longitude=${lo}&current=sea_surface_temperature&timezone=Europe%2FParis`;
+  try {
+    const [r, rm] = await Promise.all([fetch(url).then(x => x.json()), fetch(mer).then(x => x.json()).catch(() => null)]);
+    const c = r.current, d = r.daily, jour = c.is_day === 1;
+    const [fr, en] = libelle(c.weather_code, jour);
+    const date = new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Paris" });
+    document.getElementById("m-icone").innerHTML = icone(c.weather_code, jour);
+    document.getElementById("m-temp").textContent = Math.round(c.temperature_2m) + "°";
+    document.getElementById("m-ressenti").textContent = `Ressenti ${Math.round(c.apparent_temperature)}° · Feels like`;
+    document.getElementById("m-date").textContent = date.charAt(0).toUpperCase() + date.slice(1);
+    document.getElementById("m-etat").innerHTML = `${fr} <span>· ${en}</span>`;
+    document.getElementById("m-minmax").textContent = `↓ ${Math.round(d.temperature_2m_min[0])}°   ↑ ${Math.round(d.temperature_2m_max[0])}°`;
+    document.getElementById("m-vent").textContent = `Vent · Wind ${Math.round(c.wind_speed_10m)} km/h`;
+    document.getElementById("m-sunset").textContent = heureDe(d.sunset[0]);
+    document.getElementById("m-uv").textContent = Math.round(d.uv_index_max[0]);
+    const sst = rm && rm.current && rm.current.sea_surface_temperature;
+    document.getElementById("m-mer").textContent = sst != null ? Math.round(sst) + "°" : "–";
+    // Prochaines heures (toutes les 3 h)
+    const h = r.hourly, maintenant = c.time.slice(0, 13);
+    let i = Math.max(0, h.time.findIndex(t => t.slice(0, 13) === maintenant)) + 3;
+    const cases = [];
+    for (let k = 0; k < 5 && i < h.time.length; k++, i += 3) {
+      cases.push(`<div class="heure">${heureDe(h.time[i])}${icone(h.weather_code[i], h.is_day[i] === 1)}<b>${Math.round(h.temperature_2m[i])}°</b></div>`);
+    }
+    document.getElementById("m-heures").innerHTML = cases.join("");
+    meteoPrete = true;
+  } catch (e) { /* pas de réseau : on n'affiche pas la météo */ }
+}
+
+function demarrerMeteo() {
+  const ecran = document.getElementById("meteo");
+  chargerMeteo();
+  setInterval(chargerMeteo, 20 * 60 * 1000);
+  if (params.get("apercu") === "meteo") {               // ?apercu=meteo : météo affichée en continu
+    const f = () => meteoPrete ? ecran.classList.add("visible") : setTimeout(f, 300); f();
+    return;
+  }
+  setInterval(() => {
+    if (!meteoPrete) return;
+    ecran.classList.add("visible");
+    setTimeout(() => ecran.classList.remove("visible"), METEO.dureeSecondes * 1000);
+  }, METEO.toutesLesSecondes * 1000);
+}
+
 if (!id) {
   afficherMessage("Ajoute ?tablette=NOM à la fin de l'adresse (ex. ?tablette=vieux-nice-1)");
 } else if (!tablette) {
@@ -65,6 +222,7 @@ if (!id) {
   afficherMessage("Aucun diaporama pour le quartier « " + tablette.quartier + " »");
 } else {
   document.getElementById("diapo").src = lien;
+  if (METEO.actif) demarrerMeteo();
 
   envoyerSignal();
   setInterval(envoyerSignal, SIGNAL_MINUTES * 60 * 1000);
