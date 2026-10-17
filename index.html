@@ -6,7 +6,7 @@
 <title>Écran infos voyageurs</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500&family=Manrope:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@500;700&display=swap" rel="stylesheet">
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden; cursor: none; }
   iframe { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; }
@@ -33,16 +33,17 @@
   .qr-wifi canvas, .qr-wifi img { width: 17cqw; height: 17cqw; display: block; image-rendering: pixelated; }
   .qr-wifi div { font-weight: 700; font-size: 1.1cqw; margin-top: .8cqw; }
   .qr-sous { color: var(--muted); font-size: 1.15cqw; text-align: center; }
-  .scene-logement .titre { font-size: 4.2cqw; margin: 1.2cqw 0 2cqw; }
+  .scene-logement .titre { font-size: 5cqw; margin: 1.2cqw 0 0; }
+  .accent { font-family: "Instrument Serif", Georgia, serif; font-style: italic; color: var(--gold); font-size: 2.6cqw; margin: .2cqw 0 2cqw; }
   .lg-cartes { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2cqw; }
   .lg-carte { background: var(--card); border: .12cqw solid var(--gold); border-radius: 1.4cqw; padding: 1.3cqw 1.6cqw; min-width: 0; }
   .lg-carte.large { grid-column: 1 / -1; }
   .lg-carte .lab { color: var(--gold); font-weight: 700; font-size: 1.05cqw; letter-spacing: .1em; }
-  .lg-carte .val { font-family: Fraunces, Georgia, serif; font-size: 2.6cqw; margin-top: .4cqw; overflow-wrap: anywhere; }
+  .lg-carte .val { font-family: "Instrument Serif", Georgia, serif; font-size: 2.6cqw; margin-top: .4cqw; overflow-wrap: anywhere; }
   .lg-carte .sub { color: var(--muted); font-size: 1.2cqw; margin-top: .3cqw; }
   .lg-pied { display: flex; align-items: center; gap: 1.6cqw; margin-top: auto; color: var(--muted); font-size: 1.25cqw; }
   .lg-pied img { height: 3.4cqw; }
-  .lg-pied b { color: var(--cream); font-family: Fraunces, Georgia, serif; font-weight: 500; font-size: 1.7cqw; }
+  .lg-pied b { color: var(--cream); font-family: "Instrument Serif", Georgia, serif; font-weight: 400; font-size: 1.7cqw; }
 
   /* ---------- Effets dynamiques ---------- */
   .ecran .scene, .ecran .scene-logement, .ecran .scene-agenda { transform: scale(1.025); transition: transform 1.6s cubic-bezier(.2,.7,.2,1); }
@@ -68,6 +69,10 @@
   .qr-wifi { animation: pulse 2.6s ease-out infinite; }
   @media (prefers-reduced-motion: reduce) { .ecran *, .gauche { animation: none !important; transition: none !important; } }
 
+  .chrono { position: fixed; left: 0; bottom: 0; height: .35vh; width: 100%; background: var(--gold); transform-origin: left; transform: scaleX(0); z-index: 6; opacity: .85; }
+  .ecran.visible .chrono { animation: chrono var(--duree, 12s) linear forwards; }
+  @keyframes chrono { to { transform: scaleX(1); } }
+
   /* ---------- Mode nuit ---------- */
   #nuit { position: fixed; inset: 0; background: #000; z-index: 20; display: none; }
   #nuit.actif { display: block; }
@@ -77,15 +82,15 @@
     width: min(100vw, calc(100vh * 16 / 9)); aspect-ratio: 16 / 9; container-type: inline-size; box-sizing: border-box;
     padding: 4cqw 5cqw 3.5cqw; color: var(--cream); font-family: Manrope, system-ui, sans-serif; display: flex; flex-direction: column;
   }
-  .scene-agenda .titre { font-size: 4.2cqw; margin: 1.2cqw 0 .4cqw; }
+  .scene-agenda .titre { font-size: 5cqw; margin: 1.2cqw 0 .4cqw; }
   .periode { color: var(--muted); font-size: 1.5cqw; }
   .liste { display: grid; grid-template-rows: repeat(5, 1fr); grid-auto-flow: column; grid-auto-columns: 1fr; gap: 1cqw 2.4cqw; margin-top: 2.4cqw; flex: 1; }
   .evt { display: flex; align-items: center; gap: 1.4cqw; border-top: .1cqw solid rgba(200,161,90,.35); padding-top: .9cqw; min-width: 0; }
   .evt .jour { flex: 0 0 5.4cqw; text-align: center; border: .12cqw solid var(--gold); border-radius: 1cqw; padding: .4cqw 0; }
   .evt .jour small { display: block; color: var(--gold); font-weight: 700; font-size: .95cqw; letter-spacing: .08em; }
-  .evt .jour b { display: block; font-family: Fraunces, Georgia, serif; font-weight: 500; font-size: 2.3cqw; line-height: 1.05; }
+  .evt .jour b { display: block; font-family: "Instrument Serif", Georgia, serif; font-weight: 400; font-size: 2.3cqw; line-height: 1.05; }
   .evt .txt { min-width: 0; }
-  .evt .nom { font-family: Fraunces, Georgia, serif; font-size: 1.75cqw; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .evt .nom { font-family: "Instrument Serif", Georgia, serif; font-size: 1.75cqw; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .evt .info { color: var(--muted); font-size: 1.15cqw; margin-top: .3cqw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .evt .info em { color: var(--gold); font-style: normal; font-weight: 700; }
   .scene {
@@ -94,24 +99,25 @@
   }
   .gauche { background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1cqw; }
   .gauche svg { width: 17cqw; height: 17cqw; }
-  .temp { font-family: Fraunces, Georgia, serif; font-weight: 500; font-size: 11cqw; line-height: 1; }
+  .temp { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; font-size: 13cqw; line-height: 1; }
   .ressenti { color: var(--muted); font-size: 1.4cqw; }
   .droite { padding: 4.5cqw 5cqw 3.5cqw; display: flex; flex-direction: column; }
   .eyebrow { color: var(--gold); font-weight: 700; font-size: 1.15cqw; letter-spacing: .12em; }
-  .titre { font-family: Fraunces, Georgia, serif; font-weight: 500; font-size: 4.6cqw; line-height: 1.1; margin: 1.6cqw 0 .6cqw; }
+  .titre { font-family: "Instrument Serif", Georgia, serif; font-weight: 400; font-size: 5.4cqw; line-height: 1.02; margin: 1.6cqw 0 .6cqw; }
   .etat { font-size: 1.9cqw; color: var(--cream); }
   .etat span { color: var(--muted); }
   .chips { display: flex; gap: .9cqw; margin: 1.8cqw 0 2.2cqw; }
   .chip { border: .12cqw solid var(--gold); border-radius: 99px; padding: .6cqw 1.4cqw; font-weight: 700; font-size: 1.2cqw; }
   .cartes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2cqw; }
   .carte { border: .12cqw solid var(--gold); border-radius: 1.4cqw; padding: 1.3cqw 1.4cqw; background: rgba(255,255,255,.03); }
-  .carte .ic { font-size: 2.2cqw; line-height: 1; }
+  .carte .ic { line-height: 0; }
+  .carte .ic svg { width: 2.6cqw; height: 2.6cqw; }
   .carte .lab { color: var(--muted); font-size: 1.1cqw; font-weight: 700; margin-top: .7cqw; }
-  .carte .val { font-family: Fraunces, Georgia, serif; font-size: 2.9cqw; color: var(--gold); margin-top: .3cqw; }
-  .heures { display: grid; grid-template-columns: repeat(5, 1fr); gap: .6cqw; margin-top: auto; }
+  .carte .val { font-family: "Instrument Serif", Georgia, serif; font-size: 2.9cqw; color: var(--gold); margin-top: .3cqw; }
+  .heures { display: grid; grid-template-columns: repeat(5, 1fr); gap: .6cqw; margin-top: auto; padding-top: 1.6cqw; border-top: .1cqw solid rgba(200,161,90,.35); }
   .heure { text-align: center; font-size: 1.2cqw; color: var(--muted); }
-  .heure svg { width: 3.4cqw; height: 3.4cqw; display: block; margin: .3cqw auto; }
-  .heure b { color: var(--cream); font-family: Fraunces, Georgia, serif; font-weight: 500; font-size: 1.8cqw; }
+  .heure svg { width: 4.4cqw; height: 4.4cqw; display: block; margin: .3cqw auto; }
+  .heure b { color: var(--cream); font-family: "Instrument Serif", Georgia, serif; font-weight: 400; font-size: 2.4cqw; }
 </style>
 </head>
 <body>
@@ -119,6 +125,7 @@
 <div id="message"></div>
 
 <div id="meteo" class="ecran" aria-hidden="true">
+  <div class="chrono"></div>
   <div class="scene">
     <div class="gauche">
       <div id="m-icone"></div>
@@ -134,9 +141,9 @@
         <div class="chip" id="m-vent"></div>
       </div>
       <div class="cartes">
-        <div class="carte rv" style="--i:4"><div class="ic">🌊</div><div class="lab">Mer · Sea</div><div class="val" id="m-mer">–</div></div>
-        <div class="carte rv" style="--i:5"><div class="ic">🌅</div><div class="lab">Coucher · Sunset</div><div class="val" id="m-sunset">–</div></div>
-        <div class="carte rv" style="--i:6"><div class="ic">☀️</div><div class="lab">UV</div><div class="val" id="m-uv">–</div></div>
+        <div class="carte rv" style="--i:4"><div class="ic"><svg viewBox="0 0 32 32"><g fill="none" stroke="#C8A15A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c3-3 6-3 9 0s6 3 9 0 6-3 8-1"/><path d="M3 18c3-3 6-3 9 0s6 3 9 0 6-3 8-1"/><path d="M3 24c3-3 6-3 9 0s6 3 9 0 6-3 8-1"/></g></svg></div><div class="lab">Mer · Sea</div><div class="val" id="m-mer">–</div></div>
+        <div class="carte rv" style="--i:5"><div class="ic"><svg viewBox="0 0 32 32"><g fill="none" stroke="#C8A15A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22h26"/><path d="M8 22a8 8 0 0 1 16 0"/><path d="M16 6v4M6.5 10.5l2.5 2.5M25.5 10.5L23 13M8 27h16"/></g></svg></div><div class="lab">Coucher · Sunset</div><div class="val" id="m-sunset">–</div></div>
+        <div class="carte rv" style="--i:6"><div class="ic"><svg viewBox="0 0 32 32"><g fill="none" stroke="#C8A15A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="16" r="5.5"/><path d="M16 3v4M16 25v4M3 16h4M25 16h4M6.8 6.8l2.8 2.8M22.4 22.4l2.8 2.8M6.8 25.2l2.8-2.8M22.4 9.6l2.8-2.8"/></g></svg></div><div class="lab">UV</div><div class="val" id="m-uv">–</div></div>
       </div>
       <div class="heures rv" style="--i:7" id="m-heures"></div>
     </div>
@@ -144,6 +151,7 @@
 </div>
 
 <div id="logement" class="ecran" aria-hidden="true">
+  <div class="chrono"></div>
   <div class="scene-logement">
     <div class="gauche">
       <div class="qr-wifi"><div id="l-qr"></div><div>WIFI · SCAN ME</div></div>
@@ -152,6 +160,7 @@
     <div class="droite">
       <div class="eyebrow rv" style="--i:0">VOTRE LOGEMENT · YOUR STAY</div>
       <div class="titre rv" style="--i:1" id="l-nom"></div>
+      <div class="accent rv" style="--i:1.5">Bienvenue chez vous · Welcome home</div>
       <div class="lg-cartes">
         <div class="lg-carte rv" style="--i:2"><div class="lab">WIFI</div><div class="val" id="l-wifi"></div><div class="sub" id="l-mdp"></div></div>
         <div class="lg-carte rv" style="--i:3"><div class="lab">ARRIVÉE · DÉPART</div><div class="val" id="l-horaires"></div><div class="sub">Check-in · Check-out</div></div>
@@ -165,9 +174,10 @@
 <div id="nuit"></div>
 
 <div id="agenda" class="ecran" aria-hidden="true">
+  <div class="chrono"></div>
   <div class="scene-agenda">
     <div class="eyebrow rv" style="--i:0">CETTE SEMAINE À NICE · THIS WEEK IN NICE</div>
-    <div class="titre rv" style="--i:1">L'agenda de la semaine</div>
+    <div class="titre rv" style="--i:1">L'agenda <i style="color:var(--gold)">de la semaine</i></div>
     <div class="periode rv" style="--i:2" id="a-periode"></div>
     <div class="liste" id="a-liste"></div>
   </div>
@@ -394,7 +404,8 @@ function compter(el, fin, duree = 1400) {
     el.textContent = Math.round(debut + (fin - debut) * e) + "°"; if (k < 1) requestAnimationFrame(pas); };
   requestAnimationFrame(pas);
 }
-function montrer(el) {
+function montrer(el, duree) {
+  if (duree) el.style.setProperty("--duree", duree + "s");
   el.classList.add("visible");
   if (el.id === "meteo") { const t = document.getElementById("m-temp"); compter(t, +t.dataset.val); }
 }
@@ -424,7 +435,7 @@ function demarrerEcrans() {
       const e = ecrans[(n + k) % ecrans.length];
       if (e.pret()) {
         n = (n + k + 1) % ecrans.length;
-        montrer(e.el);
+        montrer(e.el, e.duree);
         setTimeout(() => e.el.classList.remove("visible"), e.duree * 1000);
         return;
       }
