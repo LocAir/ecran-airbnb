@@ -9,6 +9,7 @@ const LIENS = {
   carrefour:  "https://www.google.com/maps/search/?api=1&query=Carrefour+City+15+Rue+Meyerbeer+Nice",
   transports: "https://www.lignesdazur.com",
   pharmacies: "https://www.google.com/maps/search/pharmacie+Nice",
+  cosmetiques: "https://www.google.com/maps/search/cosm%C3%A9tiques+Vieux+Nice", // à remplacer par la vraie boutique
   avis:       "https://www.google.com/maps/search/?api=1&query=Hostias+conciergerie+Nice"
 };
 
