@@ -10,6 +10,7 @@ const LIENS = {
   transports: "https://www.lignesdazur.com",
   pharmacies: "https://www.google.com/maps/search/pharmacie+Nice",
   cosmetiques: "https://www.google.com/maps/search/cosm%C3%A9tiques+Vieux+Nice", // à remplacer par la vraie boutique
+  mode:       "https://www.google.com/maps/search/pr%C3%AAt-%C3%A0-porter+Nice", // à remplacer par la vraie boutique
   avis:       "https://www.google.com/maps/search/?api=1&query=Hostias+conciergerie+Nice"
 };
 
